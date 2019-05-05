@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
+	<title>CLDD Multiplication</title>
+</head>
+<body>
+	<div id='app'></div>
+</body>
+<script>
+	Vue.component('multiplication-display-term',{
+		props:['termObject', 'relevantIndex'],
+		template:`
+			<div class='multiplication-term'>
+				<span v-for='(digit, n) in termObject.wholeDigits' :class='[((termObject.fractDigits.length+termObject.wholeDigits.length)-n-1).toString(),{selected:relevantIndex===((termObject.fractDigits.length+termObject.wholeDigits.length)-n-1)}]'>{{digit}}</span><span v-if='termObject.hasDot'>.</span><span v-for='(digit, n) in termObject.fractDigits' :class='[(termObject.fractDigits.length-n-1).toString(),{selected:relevantIndex===(termObject.fractDigits.length-n-1)}]'>{{digit}}</span>
+			</div>
+		`
+	})
+
+	Vue.component('multiplication-preview',{
+		props:['term1Object','term2Object','base'],
+		template:`
+			<div>
+				<multiplication-preview-term :termObject='term1Object' :base='base'></multiplication-preview-term><span>*</span><multiplication-preview-term :termObject='term2Object' :base='base'></multiplication-preview-term>
+			</div>
+		`
+	})
+
+	Vue.component('multiplication-preview-term',{
+		props:['termObject','base'],
+		template:`
+			<span>
+				<span v-for='n in termObject.wholeDigits' :class='{"invalid":Number.isNaN(parseInt(n,base))}'>{{n}}</span><span v-if='termObject.hasDot'>.</span><span :class='{"invalid":Number.isNaN(parseInt(n,base))}' v-for='n in termObject.fractDigits'>{{n}}</span><sub>{{base}}</sub>
+			</span>
+		`
+	})
+
+	Vue.component('multiplication', {
+		template:`
+			<div class='main-container'>
+				<div class='setup-area content-div'>
+					<div class='input'>
+						<div>Multiply</div>
+						<input type='text' v-model='term1'>
+						<div>By</div>
+						<input type='text' v-model='term2'>
+						<div>Base</div>
+						<input type='number' v-model='base' min='2' max='36'>
+					</div>
+					<div class='multiplication-preview'>
+						<multiplication-preview :term1Object='term1Object' :term2Object='term2Object' :base='base'></multiplication-preview>
+					</div>
+				</div>
+				<div class='process-area content-div'>
+					<div class='multiplication-display'>
+						<div class='carry-display'>
+							<span v-for='carry in computationObject.multipliers[selectedMultiplier].carryDisplay'>{{carry.toString(base)}}</span><span>0</span>
+						</div>
+						<multiplication-display-term :termObject='term1Object' :relevantIndex='selectedMultiplicant'></multiplication-display-term>
+						<multiplication-display-term :termObject='term2Object' :relevantIndex='selectedMultiplier'></multiplication-display-term>
+						<div v-if='computationObject.multipliers.length > 1' class='multiplication-results'>
+							<div v-for='multiplication in computationObject.multipliers'>{{multiplication.result}}</div>
+						</div>
+						<div class='multiplication-result'>{{computationObject.sumBase10.toString(this.base)}}</div>
+					</div>
+				</div>
+				<div class='process-object-area content-div'>
+					<div v-for='multiplier in computationObject.multipliers'>
+						<div v-for='multiplication in multiplier.multiplications' class='multiplication-object' :class='{selected: selectedMultiplicant==multiplication.multiplicantIndex && selectedMultiplier==multiplier.multiplierIndex}' v-on:click='selectedMultiplicant=multiplication.multiplicantIndex; selectedMultiplier=multiplier.multiplierIndex;'>
+							<div>
+								Result:
+								({{multiplier.multiplier}}*{{multiplication.multiplicant}})+{{multiplication.carriedOver}}={{multiplication.result}}
+							</div>
+							<div>Carry:|{{multiplication.result}}/{{base}}|={{multiplication.carry}}</div>
+							<div>
+								Remainder:{{multiplication.result}}-({{base}}*{{multiplication.carry}})={{multiplication.result}}-{{multiplication.carry*base}}={{multiplication.remainder}}
+							</div>
+							<div>MultiplierIndex:{{multiplier.multiplierIndex}}</div>
+							<div>MultiplicantIndex:{{multiplication.multiplicantIndex}}</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		`,
+		data: function(){
+			return{
+				term1: 'B1A',
+				term2: '2C',
+				base: 16,
+				selectedMultiplicant: 0,
+				selectedMultiplier: 0
+			}
+		},
+		computed: {
+			term1Object: function(){
+				return this.createTermObject(this.term1);
+			},
+			term2Object: function(){
+				return this.createTermObject(this.term2);
+			},
+			computationObject: function(){
+				return this.multiply(this.term1Object, this.term2Object, this.base)
+			}
+		},
+		methods: {
+			createTermObject: function(term){
+				let termObject = {};
+				termObject['hasDot'] = term.includes('.');
+				if(termObject.hasDot){
+					let termSides = term.split('.');
+					termObject['wholeDigits'] = termSides[0].split('');
+					termObject['fractDigits'] = termSides[1].split('');
+				}else{
+					termObject['wholeDigits'] = term.split('');
+					termObject['fractDigits'] = [];
+				}
+				/*
+				termObject.wholeDigits = termObject.wholeDigits.map((digit, index, array)=>{
+					return {
+						digit: digit,
+						index: array.length - index
+					}
+				});
+				termObject.fractDigits = termObject.fractDigits.map((digit, index, array)=>{
+					return {
+						digit: digit,
+						index: index
+					}
+				});
+				*/
+				termObject['rawTerm'] = term;
+				termObject['workingArray'] = termObject.wholeDigits.concat(termObject.fractDigits).reverse();
+				return termObject;
+			},
+			multiply: function(t1, t2, base){
+				let computationObject = {};
+				computationObject['multipliers'] = [];
+				t2.workingArray.forEach((t2Digit, t2Index)=>{
+					let multiplierObject = {};
+					multiplierObject['multiplier'] = t2Digit;
+					multiplierObject['multiplierValue'] = parseInt(t2Digit, base);
+					multiplierObject['multiplierIndex'] = t2Index;
+					console.log(`Multiplier: ${multiplierObject.multiplier} Index: ${multiplierObject.multiplierIndex}`);
+					multiplierObject['multiplications'] = [];
+					t1.workingArray.forEach((t1Digit, t1Index)=>{
+						let multiplicationObject = {};
+						multiplicationObject['multiplicant'] = t1Digit;
+						multiplicationObject['multiplicantValue'] = parseInt(t1Digit, base);
+						multiplicationObject['multiplicantIndex'] = t1Index;
+						console.log(`Multiplicant: ${multiplicationObject.multiplicant} Index: ${multiplicationObject.multiplicantIndex}`);
+						let length = multiplierObject.multiplications.length;
+						if(length > 0){
+							multiplicationObject['carriedOver'] = multiplierObject.multiplications[length-1].carry;
+						}else{
+							multiplicationObject['carriedOver'] = 0;
+						}
+						//one line
+						multiplicationObject['result'] = (multiplierObject.multiplierValue * multiplicationObject.multiplicantValue) + multiplicationObject.carriedOver;
+						//
+						multiplicationObject['carry'] = Math.trunc(multiplicationObject.result / base);
+						multiplicationObject['remainder'] = multiplicationObject.result % base;
+						multiplierObject.multiplications.push(multiplicationObject);
+						//console.log(multiplicationObject);
+					});
+					multiplierObject['carryDisplay'] = [];
+					multiplierObject.multiplications.forEach(x=>{
+						multiplierObject.carryDisplay.unshift(x.carry);
+					});
+					//console.log(multiplierObject.multiplications)
+					//one line
+					multiplierObject['result'] = (multiplierObject.multiplierValue * parseInt(t1.rawTerm.replace('.',''), base)).toString(base) + '0'.repeat(t2Index);
+					//
+					computationObject.multipliers.push(multiplierObject);
+					//console.log(multiplierObject);
+				});
+				computationObject['sumBase10'] = computationObject.multipliers.reduce((accumulator, currentValue)=>{
+					//console.log(`${accumulator}+${parseInt(currentValue.result,base)}=${accumulator+parseInt(currentValue.result, base)}`)
+					return accumulator + parseInt(currentValue.result, base);
+				}, 0);
+				return computationObject;
+			}
+		}
+	})
+
+	new Vue({
+		el: '#app',
+		template: `
+			<multiplication></multiplication>
+		`
+	})
+</script>
+<style>
+	*{
+		box-sizing: border-box;
+	}
+
+	body{
+		padding: 0;
+		margin: 0;
+	}
+
+	.main-container{
+		display: grid;
+		height: 100vh;
+		overflow-y: scroll;
+		scroll-snap-type: y mandatory;
+	}
+
+	.multiplication-preview{
+		display: grid;
+		place-items: center;
+	}
+
+	.multiplication-display{
+		display: inline-grid;
+		text-transform: uppercase;
+		font-family: monospace;
+	}
+
+	.carry-display{
+		border-bottom: 1px solid black;
+		text-align: right;
+	}
+
+	.multiplication-term{
+		text-align: right;
+	}
+
+	.multiplication-results{
+		border-top: 1px solid black;
+		text-align: right;
+	}
+
+	.multiplication-result{
+		border-top: 1px solid black;
+		text-align: right;
+	}
+
+	.multiplication-object{
+		border: 1px solid black;
+	}
+
+	.invalid{
+		color: red;
+	}
+
+	.selected{
+		border: 1px solid green;
+		background-color: green;
+		color: white;
+	}
+
+	.content-div{
+		height: 100vh;
+		scroll-snap-align: start;
+	}
+
+	.setup-area{
+		display: grid;
+		place-items: center;
+		grid-template-rows: 80% 20%
+	}
+
+	@media(max-width: 425px){
+
+	}
+</style>
+</html>
