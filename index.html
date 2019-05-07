@@ -65,19 +65,17 @@
 					</div>
 				</div>
 				<div class='process-object-area content-div'>
-					<div v-for='multiplier in computationObject.multipliers'>
-						<div v-for='multiplication in multiplier.multiplications' class='multiplication-object' :class='{selected: selectedMultiplicant==multiplication.multiplicantIndex && selectedMultiplier==multiplier.multiplierIndex}' v-on:click='selectedMultiplicant=multiplication.multiplicantIndex; selectedMultiplier=multiplier.multiplierIndex;'>
-							<div>
-								Result:
-								({{multiplier.multiplier}}*{{multiplication.multiplicant}})+{{multiplication.carriedOver}}={{multiplication.result}}
-							</div>
-							<div>Carry:|{{multiplication.result}}/{{base}}|={{multiplication.carry}}</div>
-							<div>
-								Remainder:{{multiplication.result}}-({{base}}*{{multiplication.carry}})={{multiplication.result}}-{{multiplication.carry*base}}={{multiplication.remainder}}
-							</div>
-							<div>MultiplierIndex:{{multiplier.multiplierIndex}}</div>
-							<div>MultiplicantIndex:{{multiplication.multiplicantIndex}}</div>
+					<div v-for='multiplication in multiplicationObjectList' class='multiplication-object' :class='[{selected: selectedMultiplicant==multiplication.multiplicantIndex && selectedMultiplier==multiplication.multiplierIndex}, "multiplication-object"]' v-on:click='selectedMultiplicant=multiplication.multiplicantIndex; selectedMultiplier=multiplication.multiplierIndex;'>
+						<div>
+							Result:
+							({{multiplication.multiplier}}*{{multiplication.multiplicant}})+{{multiplication.carriedOver}}={{multiplication.result}}
 						</div>
+						<div>Carry:|{{multiplication.result}}/{{base}}|={{multiplication.carry}}</div>
+						<div>
+							Remainder:{{multiplication.result}}-({{base}}*{{multiplication.carry}})={{multiplication.result}}-{{multiplication.carry*base}}={{multiplication.remainder}}
+						</div>
+						<div>MultiplierIndex:{{multiplication.multiplierIndex}}</div>
+						<div>MultiplicantIndex:{{multiplication.multiplicantIndex}}</div>
 					</div>
 				</div>
 			</div>
@@ -100,6 +98,16 @@
 			},
 			computationObject: function(){
 				return this.multiply(this.term1Object, this.term2Object, this.base)
+			},
+			multiplicationObjectList: function(){
+				var list = [];
+				this.computationObject.multipliers.forEach(multiplierObject => {
+					multiplierObject.multiplications.forEach(multiplication => {
+						let multiplicationObject = {...multiplierObject, ...multiplication};
+						list.push(multiplicationObject);
+					});
+				});
+				return list;
 			}
 		},
 		methods: {
@@ -202,13 +210,25 @@
 	.main-container{
 		display: grid;
 		height: 100vh;
+		font-size: 2em;
 		overflow-y: scroll;
 		scroll-snap-type: y mandatory;
 	}
 
-	.multiplication-preview{
+	.setup-area{
 		display: grid;
-		place-items: center;
+		grid-template-rows: 80% 20%
+	}
+
+	.input{
+		background-color: blue;
+		place-self: center;
+	}
+
+	.multiplication-preview{
+		background-color: yellow;
+		display: grid;
+		place-content: center;
 	}
 
 	.multiplication-display{
@@ -255,14 +275,25 @@
 		scroll-snap-align: start;
 	}
 
-	.setup-area{
+	.process-area{
 		display: grid;
 		place-items: center;
-		grid-template-rows: 80% 20%
+		overflow: scroll;
 	}
 
-	@media(max-width: 425px){
+	.multiplication-object{
+		scroll-snap-align: start;
+	}
 
+	.process-object-area{
+		overflow-x: scroll;
+		scroll-snap-type: x mandatory;
+	}
+
+	@media(min-width: 500px){
+		.process-area{
+			font-size: 2em;
+		}
 	}
 </style>
 </html>
