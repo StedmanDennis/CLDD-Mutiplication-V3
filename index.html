@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
 	<title>CLDD Multiplication</title>
 </head>
@@ -217,7 +218,6 @@
 		display: grid;
 		height: 100vh;
 		height: calc(var(--vh, 1vh) * 100);
-		font-size: 3em;
 		overflow-y: scroll;
 		scroll-snap-type: y mandatory;
 	}
@@ -285,6 +285,7 @@
 	.process-area{
 		display: grid;
 		place-items: center;
+		font-size: 3rem;
 	}
 
 	.multiplication-object{
@@ -292,8 +293,10 @@
 	}
 
 	.process-object-area{
-		overflow-x: scroll;
-		scroll-snap-type: x mandatory;
+		display: grid;
+		grid-auto-rows: 1fr;
+		overflow-y: scroll;
+		scroll-snap-type: y mandatory;
 	}
 </style>
 </html>
